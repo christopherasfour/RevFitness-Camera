@@ -211,5 +211,17 @@
         }
       })
       </script>
+	  
+	<script>
+		<form action=“/external/“ method=“post“>
+			{% csrf_token %}
+			Input Text:
+			<input type=“text“ name=“param“ required><br><br>
+			{{data_external}}<br><br>
+			{{data1}}
+			<br><br>
+			<input type=“submit“ value=“Execute External WorkoutCamera Script“>
+		</form>
+			
   </body>
 </html>

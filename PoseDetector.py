@@ -39,7 +39,7 @@ class PoseDetector():
                     cv2.circle(img, (cx, cy), 5, (255, 0, 0), cv2.FILLED)
         return self.lmList
 
-    def findAngle(self, img, p1, p2, p3, repCounter, draw=True):
+    def findAngle(self, img, p1, p2, p3, draw=True):
 
         x1, y1 = self.lmList[p1][1:]
         x2, y2 = self.lmList[p2][1:]
@@ -48,7 +48,9 @@ class PoseDetector():
         angle = math.degrees(math.atan2(y3 - y2, x3 - x2) - math.atan2(y1 - y2, x1 - x2))
         if (angle < 0):
             angle += 360
-        
+        # print("x1,y1: ", x1, y1)
+        # print("x2,y2: ", x2, y2)
+        # print("x3,y3: ", x3, y3)
         
 
         # Draw
@@ -68,8 +70,7 @@ class PoseDetector():
                 cv2.circle(img, (x2, y2), 15, (0,255,0), 2)
                 cv2.circle(img, (x3, y3), 10, (0,255,0), cv2.FILLED)
                 cv2.circle(img, (x3, y3), 15, (0,255,0), 2)
-                repCounter = repCounter + 1
-                print(repCounter)
+                
             if (angle >= 190 and angle <= 195):
                 cv2.circle(img, (x1, y1), 10, (255,0,0), cv2.FILLED)
                 cv2.circle(img, (x1, y1), 15, (255,0,0), 2)
@@ -79,8 +80,8 @@ class PoseDetector():
                 cv2.circle(img, (x3, y3), 15, (255,0,0), 2)
                 
             cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50),
-                        cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 2, (0, 0, 255), 2)
-        return (angle, repCounter)
+                        cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 2, (0, 0, 255), 2)
+        return (angle)
 
 def main():
     pTime = 0

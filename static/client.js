@@ -8,17 +8,8 @@ var dataChannelLog = document.getElementById('data-channel'),
 var pc = null;
 var config = {
     sdpSemantics: 'unified-plan',
-    'iceServers': [
-        {
-          'url': 'stun:numb.viagenie.ca:3478'
-        },
-        {
-            'url': 'turn:numb.viagenie.ca',
-            'credential': 'muazkh',
-            'username': 'webrtc@live.com'
-        },
-      ]
 };
+//config.iceServers = [{urls: ['stun:openrelay.metered.ca:80']}];
 
 // data channel
 var dc = null, dcInterval = null;
@@ -97,45 +88,16 @@ function negotiate() {
             method: 'POST'
         });
     }).then(function(response) {
+        
         return response.json();
     }).then(function(answer) {
+        console.log(answer)
         //document.getElementById('answer-sdp').textContent = answer.sdp;
         return pc.setRemoteDescription(answer);
     }).catch(function(e) {
         alert(e);
     });
 }
-
-function requestTurn(turnURL) {
-    var turnExists = false;
-    for (var i in config.iceServers) {
-      if (config.iceServers[i].urls.substr(0, 5) === 'turn:') {
-        turnExists = true;
-        turnReady = true;
-        break;
-      }
-    }
-    if (!turnExists) {
-      console.log('Getting TURN server from ', turnURL);
-      // No TURN server. Get one from computeengineondemand.appspot.com:
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          var turnServer = JSON.parse(xhr.responseText);
-          console.log('Got TURN server: ', turnServer);
-          config.iceServers.push({
-            'url': 'turn:' + turnServer.username + '@' + turnServer.turn,
-            'credential': turnServer.password
-            
-            
-          });
-          turnReady = true;
-        }
-      };
-      xhr.open('GET', turnURL, true);
-      xhr.send();
-    }
-  }
 
 function start() {
     pc = createPeerConnection();

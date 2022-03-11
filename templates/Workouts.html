@@ -76,7 +76,7 @@
                 <p class="u-text u-text-3" data-animation-name="fadeIn" data-animation-duration="1000" data-animation-direction=""> A lateral raise works&nbsp;<b>your shoulder muscles as well as your triceps</b>. To do this exercise: Stand or sit with your arms at your sides and a dumbbell in each hand.
                 </p>
                 <form action ="{{ url_for('workoutCamera') }}" method="POST">
-                  <button onclick="start()" type="submit" name="button" value="Lateral Raises" data-page-id="909308121" class="u-active-grey-40 u-border-none u-btn u-btn-round u-button-style u-custom-color-1 u-custom-font u-font-montserrat u-hover-feature u-hover-white u-radius-25 u-btn-1" data-animation-name="fadeIn" data-animation-duration="1000" data-animation-direction="">Start</a>
+                  <button type="submit" name="button" value="Lateral Raises" data-page-id="909308121" class="u-active-grey-40 u-border-none u-btn u-btn-round u-button-style u-custom-color-1 u-custom-font u-font-montserrat u-hover-feature u-hover-white u-radius-25 u-btn-1" data-animation-name="fadeIn" data-animation-duration="1000" data-animation-direction="">Start</a>
                 </form>
               </div>
             </div>
@@ -138,7 +138,7 @@
               <div class="u-align-center-sm u-align-right-md u-container-style u-layout-cell u-size-20 u-size-20-md u-layout-cell-2">
                 <div class="u-container-layout u-valign-middle u-container-layout-2">
                   <a href="https://nicepage.com" class="u-image u-logo u-image-1" data-image-width="1200" data-image-height="1200">
-                    <img src="images/RevFitness-logos_black.png" class="u-logo-image u-logo-image-1">
+                    <img src="{{ url_for('static', filename='RevFitness-logos_black.png') }}" class="u-logo-image u-logo-image-1">
                   </a>
                 </div>
               </div>

@@ -33,153 +33,7 @@ mp_drawing = mp.solutions.drawing_utils
 pose_video = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, model_complexity=1)
 logger = logging.getLogger("pc")
 pcs = set()
-
-class VideoTransformTrack(MediaStreamTrack):
-    kind = "video"
-
-    def __init__(self, track, transform):
-        super().__init__()  # don't forget this!
-        self.track = track
-        self.transform = transform
-    
-    async def recv(self):
-        frame = await self.track.recv()
-        counter = 0 
-        stage = None
-        with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.85) as pose:
-            while camera.isOpened():
-                ret, frame = camera.read()
-
-                # Recolor image to RGB
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                image.flags.writeable = False
-            
-                # Make detection
-                results = pose.process(image)
-            
-                # Recolor back to BGR
-                image.flags.writeable = True
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                
-                # Extract landmarks
-                try:
-                    landmarks = results.pose_landmarks.landmark
-                    shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-                    elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-                    wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-                    # Get coordinates
-                    leftHip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-                    rightHip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-                    knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-                    ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-                    # Curl counter logic
-                    if (workoutofChoice == 'Lateral Raises'):
-                        rightShoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-                        rightElbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-                        angle_rightarm = calculateAngle(rightHip, rightShoulder, rightElbow)
-                        angle_leftarm = calculateAngle(leftHip, shoulder, elbow)
-                        hit1 = False
-                        if angle_rightarm > 99 and angle_leftarm > 99:
-                            stage = "Down"
-                        if (angle_rightarm < 35 and angle_leftarm < 35) and stage =='Down':
-                            stage="Up"
-                            counter +=1
-                            hit1 = True
-                            successColor = (0,255,0)
-                            print(counter)
-                            
-                        
-                        cv2.putText(image, str(angle_rightarm), 
-                                    tuple(np.multiply(elbow, [640, 480]).astype(int)), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                                            )
-                        
-                                # Render curl counter
-                        # Setup status box
-                        if (hit1):
-
-                            cv2.rectangle(image, (0,0), (225,73), successColor, -1)
-                        else:
-                            cv2.rectangle(image, (0,0), (225,73), (255,0,0), -1)
-                        
-                        # Rep data
-                        # cv2.putText(image, 'Reps', (15,12), 
-                        #             cv2.FONT_HERSHEY_PLAIN, 0.5, (0,0,0), 1, cv2.LINE_AA)
-                        cv2.putText(image, str(counter), 
-                                    (10,60), 
-                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255,255,255), 2, cv2.LINE_AA)
-                        
-                        # Stage data
-                        # cv2.putText(image, 'STAGE', (19,60), 
-                        #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0,0,0), 1, cv2.LINE_AA)
-                        cv2.putText(image, stage, 
-                                    (30,60), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
-                        
-                        
-                        # Render detections
-                        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                                                mp_drawing.DrawingSpec(color=(255,0,0), thickness=2, circle_radius=3), 
-                                                mp_drawing.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=3) 
-                                                )    
-                    elif (workoutofChoice == 'Squats'):
-                        angle_knee = calculateAngle(hip, knee, ankle) #Knee joint angle
-                        angle_hip = calculateAngle(shoulder, hip, knee)
-                        hip_angle = 180-angle_hip
-                        knee_angle = 180-angle_knee
-                        print(angle_knee)
-                        
-                        if angle_knee > 159:
-                            stage = "up"
-                        if angle_knee <= 90 and stage =='up':
-                            stage="down"
-                            counter +=1
-
-                        # Visualize angle
-                        cv2.putText(image, str(angle_knee), 
-                                    tuple(np.multiply(elbow, [640, 480]).astype(int)), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                                            )
-                                    # Render curl counter
-                        # Setup status box
-                        cv2.rectangle(image, (0,0), (225,73), (245,117,16), -1)
-                        
-                        # Rep data
-                        # cv2.putText(image, 'Reps', (15,12), 
-                        #             cv2.FONT_HERSHEY_PLAIN, 0.5, (0,0,0), 1, cv2.LINE_AA)
-                        cv2.putText(image, str(counter), 
-                                    (10,60), 
-                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255,255,255), 2, cv2.LINE_AA)
-                        
-                        # Stage data
-                        # cv2.putText(image, 'STAGE', (19,60), 
-                        #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0,0,0), 1, cv2.LINE_AA)
-                        cv2.putText(image, stage, 
-                                    (30,60), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
-                        
-                        
-                        # Render detections
-                        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                                                mp_drawing.DrawingSpec(color=(255,0,0), thickness=2, circle_radius=3), 
-                                                mp_drawing.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=3) 
-                                                )    
-                        
-                
-                except Exception as e:
-                    print(e)
-                    cv2.rectangle(image, (0,0), (225,73), (0,0,255), -1)
-                    cv2.putText(image, 'BODY NOT FOUND', (15,15), 
-                            cv2.FONT_HERSHEY_PLAIN, 1.5, (0,0,0), 1, cv2.LINE_AA)
-                    cv2.putText(image, str(counter), 
-                            (10,60), 
-                            cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255,255,255), 2, cv2.LINE_AA)
-                
-                stat,frame =cv2.imencode('.jpg',image)
-                yield (b'--frame\r\n'
-        b'Content-Type: image/jpeg\r\n\r\n' + frame.tobytes() + b'\r\n')           
-
-
+   
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -287,8 +141,8 @@ def gen(camera, workoutofChoice):
                     # cv2.putText(image, 'STAGE', (19,60), 
                     #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0,0,0), 1, cv2.LINE_AA)
                     cv2.putText(image, stage, 
-                                (30,60), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
+                                (90,60), 
+                                cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, (255,255,255), 2, cv2.LINE_AA)
                     
                     
                     # Render detections
@@ -297,16 +151,19 @@ def gen(camera, workoutofChoice):
                                             mp_drawing.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=3) 
                                             )    
                 elif (workoutofChoice == 'Squats'):
-                    angle_knee = calculateAngle(hip, knee, ankle) #Knee joint angle
-                    angle_hip = calculateAngle(shoulder, hip, knee)
+                    hit1 = False
+                    angle_knee = calculateAngle(leftHip, knee, ankle) #Knee joint angle
+                    angle_hip = calculateAngle(shoulder, rightHip, knee)
                     hip_angle = 180-angle_hip
                     knee_angle = 180-angle_knee
                     print(angle_knee)
                     
                     if angle_knee > 159:
-                        stage = "up"
+                        stage = "Down"
                     if angle_knee <= 90 and stage =='up':
-                        stage="down"
+                        stage="Up"
+                        hit1 = True
+                        successColor = (0,255,0)
                         counter +=1
 
                     # Visualize angle
@@ -314,6 +171,12 @@ def gen(camera, workoutofChoice):
                                 tuple(np.multiply(elbow, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
+                    
+                    if (hit1):
+
+                        cv2.rectangle(image, (0,0), (225,73), successColor, -1)
+                    else:
+                        cv2.rectangle(image, (0,0), (225,73), (255,0,0), -1)
                                 # Render curl counter
                     # Setup status box
                     cv2.rectangle(image, (0,0), (225,73), (245,117,16), -1)
@@ -329,8 +192,8 @@ def gen(camera, workoutofChoice):
                     # cv2.putText(image, 'STAGE', (19,60), 
                     #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0,0,0), 1, cv2.LINE_AA)
                     cv2.putText(image, stage, 
-                                (30,60), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
+                                (90,60), 
+                                cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, (255,255,255), 2, cv2.LINE_AA)
                     
                     
                     # Render detections
@@ -338,7 +201,53 @@ def gen(camera, workoutofChoice):
                                             mp_drawing.DrawingSpec(color=(255,0,0), thickness=2, circle_radius=3), 
                                             mp_drawing.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=3) 
                                             )    
+                elif (workoutofChoice == 'Bicep Curls'):
+                    hit1 = False
+                    successColor = (0,255,0)
+                    angle = calculateAngle(shoulder, elbow, wrist) 
                     
+                    if angle > 160:
+                        stage = "Down"
+                    if angle < 30 and stage =='Down':
+                        stage="Up"
+                        hit1 = True
+                        counter +=1
+                    
+
+                    cv2.putText(image, str(angle), 
+                                tuple(np.multiply(elbow, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    
+                            # Render curl counter
+                    # Setup status box
+                    if (hit1):
+
+                        cv2.rectangle(image, (0,0), (225,73), successColor, -1)
+                    else:
+                        cv2.rectangle(image, (0,0), (225,73), (255,0,0), -1)
+
+                    # Rep data
+                    # cv2.putText(image, 'Reps', (15,12), 
+                    #             cv2.FONT_HERSHEY_PLAIN, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                    cv2.putText(image, str(counter), 
+                                (10,60), 
+                                cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255,255,255), 2, cv2.LINE_AA)
+                    
+                    # Stage data
+                    # cv2.putText(image, 'STAGE', (19,60), 
+                    #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                    cv2.putText(image, stage, 
+                                (90,60), 
+                                cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, (255,255,255), 2, cv2.LINE_AA)
+                    
+                    
+                    
+                    # Render detections
+                    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                            mp_drawing.DrawingSpec(color=(255,0,0), thickness=2, circle_radius=3), 
+                                            mp_drawing.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=3) 
+                                            )    
             
             except Exception as e:
                 print(e)
@@ -361,65 +270,68 @@ def video(variable):
     mimetype='multipart/x-mixed-replace; boundary=fr')
 
 
-@app.route('/offer', methods=['GET','POST'])
-async def offer():
-    params = request.get_json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+# @app.route('/offer', methods=['GET','POST'])
+# async def offer():
+#     params = request.get_json()
+#     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-    pc = RTCPeerConnection()
-    pc_id = "PeerConnection(%s)" % uuid.uuid4()
-    pcs.add(pc)
+#     pc = RTCPeerConnection()
+#     pc_id = "PeerConnection(%s)" % uuid.uuid4()
+#     pcs.add(pc)
 
-    def log_info(msg, *args):
-        logger.info(pc_id + " " + msg, *args)
+#     def log_info(msg, *args):
+#         logger.info(pc_id + " " + msg, *args)
 
-    #log_info("Created for %s", request.remote)
+#     #log_info("Created for %s", request.remote)
 
-    # prepare local media
-    #player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-    recorder = MediaBlackhole()
+#     # prepare local media
+#     #player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
+#     recorder = MediaBlackhole()
 
-    @pc.on("datachannel")
-    def on_datachannel(channel):
-        @channel.on("message")
-        def on_message(message):
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
+#     @pc.on("datachannel")
+#     def on_datachannel(channel):
+#         @channel.on("message")
+#         def on_message(message):
+#             if isinstance(message, str) and message.startswith("ping"):
+#                 channel.send("pong" + message[4:])
 
-    @pc.on("iceconnectionstatechange")
-    async def on_iceconnectionstatechange():
-        log_info("ICE connection state is %s", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
-            pcs.discard(pc)
+#     @pc.on("iceconnectionstatechange")
+#     async def on_iceconnectionstatechange():
+#         log_info("ICE connection state is %s", pc.iceConnectionState)
+#         if pc.iceConnectionState == "failed":
+#             await pc.close()
+#             pcs.discard(pc)
 
-    @pc.on("track")
-    def on_track(track):
-        log_info("Track %s received", track.kind)
+#     @pc.on("track")
+#     def on_track(track):
+#         log_info("Track %s received", track.kind)
         
-        if track.kind == "video":
-            local_video = VideoTransformTrack(
-                track, transform=params["video_transform"]
-            )
-            pc.addTrack(local_video)
+#         if track.kind == "video":
+#             local_video = VideoTransformTrack(
+#                 track, transform=params["video_transform"]
+#             )
+#             pc.addTrack(local_video)
 
-        @track.on("ended")
-        async def on_ended():
-            log_info("Track %s ended", track.kind)
-            await recorder.stop()
+#         @track.on("ended")
+#         async def on_ended():
+#             log_info("Track %s ended", track.kind)
+#             await recorder.stop()
 
-    # handle offer
-    await pc.setRemoteDescription(offer)
-    await recorder.start()
+#     # handle offer
+#     await pc.setRemoteDescription(offer)
+#     await recorder.start()
 
-    # send answer
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
+#     # send answer
+#     answer = await pc.createAnswer()
+#     await pc.setLocalDescription(answer)
 
-    x = json.dumps(
-            {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
-    return Response(
-        x, content_type="application/json")
+#     x = json.dumps(
+#             {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
+#     print(x)
+#     return Response(
+#         x, content_type="application/json")
+
+#     return Response()
 
 def detectPose(image, pose, display=True):
     '''
@@ -628,36 +540,34 @@ def classifyPose(landmarks, output_image, display=False):
         return output_image, label
 
 def initializeCamera():
-
     camera_video = cv2.VideoCapture(0)
-
     return camera_video
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="WebRTC audio / video / data-channels demo"
-    )
-    parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
-    parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
-    parser.add_argument(
-        "--host", default="0.0.0.0", help="Host for HTTP server (default: 0.0.0.0)"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
-    )
-    parser.add_argument("--verbose", "-v", action="count")
-    parser.add_argument("--write-audio", help="Write received audio to a file")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(
+    #     description="WebRTC audio / video / data-channels demo"
+    # )
+    # parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
+    # parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
+    # parser.add_argument(
+    #     "--host", default="0.0.0.0", help="Host for HTTP server (default: 0.0.0.0)"
+    # )
+    # parser.add_argument(
+    #     "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
+    # )
+    # parser.add_argument("--verbose", "-v", action="count")
+    # parser.add_argument("--write-audio", help="Write received audio to a file")
+    # args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    # if args.verbose:
+    #     logging.basicConfig(level=logging.DEBUG)
+    # else:
+    #     logging.basicConfig(level=logging.INFO)
 
-    if args.cert_file:
-        ssl_context = ssl.SSLContext()
-        ssl_context.load_cert_chain(args.cert_file, args.key_file)
-    else:
-        ssl_context = None
+    # if args.cert_file:
+    #     ssl_context = ssl.SSLContext()
+    #     ssl_context.load_cert_chain(args.cert_file, args.key_file)
+    # else:
+    #     ssl_context = None
     server_port = os.environ.get('PORT', '8080')
     app.run(debug=False, port=server_port, host='0.0.0.0')

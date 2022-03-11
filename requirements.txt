@@ -1,0 +1,6 @@
+Flask==2.0.3
+requests==2.27.1
+ptvsd==4.3.2 # Required for debugging.
+opencv-python-headless
+mediapipe
+matplotlib
